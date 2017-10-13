@@ -12,7 +12,7 @@
    1.0.4 - Aaron Roggow - added red led
    1.0.5 - Jacob Gehring - added eeprom
    1.0.6 - Julia Jenks - adjusted LEDs to function green for idle, red for tackled, and blue for non-ball carriers. Also commented code
-   1.0.7 - Alex Kaariainen - removed legacy code, added many comments, re-organized portions of code and altered omni-specific code to improve general omni agility
+   1.0.7 - Alex Kaariainen - removed legacy code, added comments, and altered omni-specific code to improve general omni agility
 
 
 
