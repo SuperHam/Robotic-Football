@@ -1,5 +1,7 @@
 #  Victor Test V1.0
 
+   Matt Bull - Victor Test V.1
+   
 This program is designed to run the victors across their full output range in order to verify their functionality.
 Alternatively, it can also be used to run a single motor for a specified period of time at a chosen speed.
 
@@ -11,5 +13,3 @@ Alternatively, it can also be used to run a single motor for a specified period 
    4. Upload this program to the arduino and remove power from the arduino.
    5. Wire motor to victor.
    6. Connect a PWM cable to the victor, with the white wire facing outwards.
-   
-   Matt Bull - Victor Test V.1
