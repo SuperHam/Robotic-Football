@@ -1,4 +1,3 @@
-#include <EEPROM.h>
 /*
  * =================================================
    THE ALL-IN-ONE-PACKAGE - Robotic Football Edition
@@ -72,7 +71,8 @@
    There is error handling below for if things are enabled/disabled that shouldn't be.
    Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
 */
-      
+
+#include <EEPROM.h>      
 int driveState = EEPROM.read(0); //Reads value from the first value form the EEPROM
 int inverting = 0;              //Sets inverting to 0
 
