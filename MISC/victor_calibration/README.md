@@ -1,6 +1,6 @@
-#  Victor Calibration V1
+#  Victor Calibration Version 1.0
 
-Matt Bull - Victor Calibration V1
+Matt Bull - Victor Calibration Version 1.0
   
   This program is designed to calibrate victors.
    Alternatively, it can also be used to run a single motor for a specified period of time at a chosen speed.
