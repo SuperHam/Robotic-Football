@@ -1,4 +1,4 @@
-Miscilanious (But Helpful) Projects
+Miscellaneous (But Helpful) Projects
 ==================================
 Victor Test
 
