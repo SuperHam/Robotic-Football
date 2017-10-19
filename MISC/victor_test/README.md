@@ -1,6 +1,6 @@
-#  Victor Test V1.0
+#  Victor Test Version 1.0
 
-   Matt Bull - Victor Test V.1
+   Matt Bull - Victor Test Version 1.0
    
 This program is designed to run the victors across their full output range in order to verify their functionality.
 Alternatively, it can also be used to run a single motor for a specified period of time at a chosen speed.
