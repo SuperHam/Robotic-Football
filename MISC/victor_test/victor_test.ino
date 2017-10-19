@@ -1,3 +1,11 @@
+/*
+///////////
+Victor Test
+///////////
+
+Matt Bull - Victor Test V.1
+*/
+
 #include <Servo.h>
 #define VICTOR_PIN 9 // the pin that the victor's signal line is attached to
 
