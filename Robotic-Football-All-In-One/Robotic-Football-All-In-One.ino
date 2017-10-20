@@ -21,9 +21,9 @@ ADD IN 'ERROR' THAT WILL TELL HOW MUCH FLASH/SRAM IS USED WITH EVERY DDEFINE
    1.0.4 - Aaron Roggow - added red led
    1.0.5 - Jacob Gehring - added eeprom
    1.0.6 - Julia Jenks - adjusted LEDs to function green for idle, red for tackled, and blue for non-ball carriers. Also commented code
-   1.0.7 - Alex Kaariainen - removed legacy code, commented code, and improved general omni agility and preformance
-   1.0.8 - Alex Kaariainen - optmized variable types to reduce program footprint
-  Controls...
+   1.0.7 - Alex Kaariainen - removed legacy code, commented code, and improved general omni agility and preformance, optmized variable types to reduce program footprint
+
+Controls...
    SELECT - enter/exit CALIBRATION MODE - note, will exit into normal drive mode
       UP/DOWN - adjust motor offset
    START - enter/exit KIDS MODE - will make the robots move much slower
