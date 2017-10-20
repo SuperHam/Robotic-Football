@@ -1,4 +1,8 @@
 /*
+Flash: 23254 bytes out of 32256 bytes
+SRAM: 1057 bytes out of 2048 bytes
+*/
+/*
 TODO-
 ADD BACK IN ROTATAION LOCK FUNC.
 KEEP REDUCING VAR. DATA TYPE
