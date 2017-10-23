@@ -1,4 +1,16 @@
 /*
+TODO-
+START W/ NOTHIGN DEFINED--MAKES SENSE
+KEEP REDUCING VAR. DATA TYPE
+FIX IR CODE AND REDUCE ITS FOOTPRINT (ITS BIG)
+Investigate MAX_DRIVE 'arib' value
+Tackle is depenent on LED, consdier combineing
+DUAL MOTOR DRIVE TRAIN BROKEN GET RIDE OF W/ NEW RB?????????
+ADD IN 'ERROR' THAT WILL TELL HOW MUCH FLASH/SRAM IS USED WITH EVERY DDEFINE
+Check how much memory the strings within IR tracking are using
+Explore idea of reducing size of libraries
+*/
+/*
  * =================================================
    THE ALL-IN-ONE-PACKAGE - Robotic Football Edition
    =================================================
@@ -11,13 +23,9 @@
    1.0.4 - Aaron Roggow - added red led
    1.0.5 - Jacob Gehring - added eeprom
    1.0.6 - Julia Jenks - adjusted LEDs to function green for idle, red for tackled, and blue for non-ball carriers. Also commented code
-   1.0.7 - Alex Kaariainen - removed legacy code, commented code, and improved general omni agility and preformance
+   1.0.7 - Alex Kaariainen - removed legacy code, commented code, and improved general omni agility and preformance, optmized variable types to reduce program footprint
 
-
-
-
-
-  Controls...
+Controls...
    SELECT - enter/exit CALIBRATION MODE - note, will exit into normal drive mode
       UP/DOWN - adjust motor offset
    START - enter/exit KIDS MODE - will make the robots move much slower
@@ -62,57 +70,47 @@
    QB Thrower - 5
    Kicker - 5
    Center - 5  
-
-
-
-
-
-   Enable and disable the desired features here.
-   There is error handling below for if things are enabled/disabled that shouldn't be.
-   Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
 */
-
-#include <EEPROM.h>      
-int driveState = EEPROM.read(0); //Reads value from the first value form the EEPROM
-int inverting = 0;              //Sets inverting to 0
-
-//#define BASIC_DRIVETRAIN    //uncomment for 2 drive wheels
-//#define DUAL_MOTORS
-//#define LR_TACKLE_PERIPHERALS         //uncomment for special handicap for the tackles
-#define OMNIWHEEL_DRIVETRAIN  //uncomment for omniwheel robots
-
-//#define CENTER_PERIPHERALS  //uncomment for center-robot features 
-//#define QB_PERIPHERALS      //uncomment for QB features
-#define IR_MAST
-//#define QB_TRACKING
-//#define KICKER_PERIPHERALS  //uncomment for special Kicker features
-//#define RECEIVER_PERIPHERALS  
-#define LED_STRIP       //uncomment for LED functionality
-#define TACKLE          //uncomment for tackle sensor functionality
-//#define ROTATION_LOCK
- 
-// mode definitions
-#define DRIVING         1
-#define CALIBRATION     2
-#define KID             3
- 
-//Include libraries
+//Minimum included libraries
 #include <PS3BT.h>
 #include <usbhub.h>
 #include <Servo.h>
+#include <EEPROM.h>      
+boolean driveState = EEPROM.read(0); //Reads value from the first value form the EEPROM
+boolean inverting = 0;              //Sets inverting to 0
+
+/*
+ Enable and disable the desired features below.
+ There is error handling below for if things are enabled/disabled that shouldn't be.
+*/
+//#define BASIC_DRIVETRAIN    //uncomment for 2 drive wheels                                         BASIC-FLASH:23747      SRAM:1061
+//#define OMNIWHEEL_DRIVETRAIN  //uncomment for omniwheel robots                                      OMNI-FLASH:25464      SRAM:1075
+//#define DUAL_MOTORS
+//#define LR_TACKLE_PERIPHERALS         //uncomment for special handicap for the tackles
+//#define CENTER_PERIPHERALS  //uncomment for center-robot features                                 CENTER-FLASH:134        SRAM:3
+//#define QB_PERIPHERALS      //uncomment for QB features                                           QB_PER-FLASH:506        SRAM:11
+//#define IR_MAST           //                                                                     IR_MAST-FLASH:132        SRAM:4
+//#define QB_TRACKING       //                                                                 QB_TRACKING-FLASH:2488       SRAM:251
+//#define KICKER_PERIPHERALS  //uncomment for special Kicker features                               KICKER-FLASH:154        SRAM:3
+//#define RECEIVER_PERIPHERALS  //USELESS ONLY USED FOR ERRORS                                    RECEIVER-FLASH:0          SRAM:0
+//#define LED_STRIP       //uncomment for LED functionality                                           LEDS-FLASH:258        SRAM:0
+//#define TACKLE          //uncomment for tackle sensor functionality                               TACKLE-FLASH:222        SRAM:1
  
+// mode definitions
+#define DRIVING         1
+#define KID             3
  
 #ifdef OMNIWHEEL_DRIVETRAIN
   #include <math.h>                   // used for trig in determining magnitude and angle
 #endif
- 
+
 #ifdef ROTATION_LOCK
   #include <Wire.h>
   #include <Adafruit_Sensor.h>
   #include <Adafruit_BNO055.h>
   #include <utility/imumaths.h>
 #endif
- 
+  
 #ifdef LED_STRIP
   #define RED_LED         11          //Red LED control is wired to pin 11
   #define GREEN_LED       12          //Green LED control is wired to pin 12
@@ -121,7 +119,7 @@ int inverting = 0;              //Sets inverting to 0
  
 #ifdef TACKLE
   #define TACKLE_INPUT    6           // Tackle sensor is wired to pin 6
-  int tackled = 1;                    // Tackle detects if the robot has been tackled (1 = not tackled)
+  boolean tackled = 1;                    // Tackle detects if the robot has been tackled (1 = not tackled)
   bool hasIndicatedTackle = false;    // variable to check if robot is previously in tackled state
 #endif
  
@@ -149,9 +147,9 @@ int inverting = 0;              //Sets inverting to 0
   #define MAX_DRIVE             84    // limited because of issues with calibrating victors to full 0-180 range
    
   Servo leftMotor, rightMotor;        // Define motor objects
-  int drive = 0;                      // Initial speed before turning calculations
-  int turn = 0;                       // Turn is adjustment to drive for each motor separately to create turns
-  int xInput, yInput, throttleL, throttleR;
+    byte drive = 0;                      // Initial speed before turning calculations
+    byte turn = 0;                       // Turn is adjustment to drive for each motor separately to create turns
+    int xInput, yInput, throttleL, throttleR; //needs to int bc of comparison testing against negative numbers
 #endif
  
 #ifdef OMNIWHEEL_DRIVETRAIN
@@ -174,12 +172,12 @@ int inverting = 0;              //Sets inverting to 0
   #endif
   Servo motor1, motor2, motor3, motor4;                                       // Define omni motor objects
   // we just make these global so we don't have to reallocate memory every single loop
-  int motor1Drive, motor2Drive, motor3Drive, motor4Drive;                     // Define global variables for driving
-  int motor1Input = 90, motor2Input = 90, motor3Input = 90, motor4Input = 90; 
-  int xInput, yInput, turnInput;                          
+  byte motor1Drive, motor2Drive, motor3Drive, motor4Drive;                     // Define global variables for driving
+  byte motor1Input = 90, motor2Input = 90, motor3Input = 90, motor4Input = 90; 
+  byte xInput, yInput, turnInput;                          
   float magn, angle;
   float motorReverse = 0;             // 0 for not reversed, M_PI for reversed (think about your trig) again better to flip motor leads
-  int turnHandicap = 1;
+  byte turnHandicap = 1;
 #endif
 
 #ifdef CENTER_PERIPHERALS
@@ -213,7 +211,7 @@ int throwOffset = 0;                //used to adjust strength of circle, cross, 
 #endif
 
 #ifdef QB_TRACKING
-  int aimingFactor = 0;             //value sent to the motors to aim
+    byte aimingFactor = 0;             //value sent to the motors to aim
 
   //IR Camera Things
   void cameraCapture();
@@ -242,7 +240,7 @@ int throwOffset = 0;                //used to adjust strength of circle, cross, 
   #define KICKER_RELOAD         85
   Servo kicker;                       // Define motor object for the kicker motor
 #endif
- 
+
 #ifdef ROTATION_LOCK
   #define MINIMUM_ANGLE               5
   #define SAMPLE_PERIOD               50
@@ -254,7 +252,7 @@ int throwOffset = 0;                //used to adjust strength of circle, cross, 
   int sample = 0;
   int wasIturning = 0;
 #endif
- 
+
 /////////////////////////////////////////////////////////////////////
 // Universal stuffs
 /////////////////////////////////////////////////////////////////////
@@ -262,7 +260,7 @@ int state = DRIVING;                // the current state the robot is in
 int handicap = DEFAULT_HANDICAP;    // This line requires one drivetrain to be enabled
 
 // This is stuff for connecting the PS3 to USB.
-int newconnect = 0;                 // Variable(boolean) for connection to ps3, also activates rumble
+boolean newconnect = 0;                 // Variable(boolean) for connection to ps3, also activates rumble
 USB Usb;
 USBHub Hub1(&Usb);
 BTD Btd(&Usb);
@@ -359,17 +357,7 @@ void setup() {
     while (1);
   }
   Serial.print(F("\r\nPS3 Bluetooth Library Started"));
- 
-#ifdef ROTATION_LOCK
-  if (!gyro.begin())
-  {
-    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
-    while (1)
-    {
-      flashLed();
-    }
-  }
-#endif
+
 }
  
 void loop()
@@ -389,14 +377,19 @@ void loop()
       newconnect++;
       PS3.moveSetRumble(64);
       PS3.setRumbleOn(100, 255, 100, 255); //VIBRATE!!!
- 
+    }
+
 #ifdef ROTATION_LOCK
       gyro.getEvent(&rotationReadout);
       desiredRotation = rotationReadout.orientation.x; // setting up our baseline value
 #endif
-    }
  
 #ifdef LED_STRIP
+  #define RED_LED         11          //Red LED control is wired to pin 11
+  #define GREEN_LED       12          //Green LED control is wired to pin 12
+  #define BLUE_LED        13          //Blue LED control is wired to pin 13
+#endif
+
 #ifdef TACKLE
     // NORMAL OPERATION MODE
     // for the if statement for whether or not
@@ -421,11 +414,11 @@ void loop()
       digitalWrite(GREEN_LED, HIGH);
       if (hasIndicatedTackle)hasIndicatedTackle = false;
     }
-#else
-    digitalWrite(GREEN_LED, LOW);
-    digitalWrite(BLUE_LED, HIGH);
-    digitalWrite(RED_LED, LOW);
+
 #endif
+#ifdef ROTATION_LOCK
+      gyro.getEvent(&rotationReadout);
+      desiredRotation = rotationReadout.orientation.x; // setting up our baseline value
 #endif
     if (state == DRIVING || state == KID)
     {
@@ -625,7 +618,7 @@ void driveCtrl()
     throttleL = LEFT_MOTOR_REVERSE * ((drive + turn) / handicap);
     // This is the final variable that
     // decides motor speed.
-    throttleR = RIGHT_MOTOR_REVERSE * ((drive - turn) / handicap ) + ;
+    throttleR = RIGHT_MOTOR_REVERSE * ((drive - turn) / handicap );
  
     if (throttleL > MAX_DRIVE) throttleL = MAX_DRIVE;
     else if (throttleL < -MAX_DRIVE)throttleL = -MAX_DRIVE;
@@ -737,8 +730,7 @@ void driveCtrl()
  
   magn = sqrt(pow(xInput, 2) + pow(yInput, 2));       // finding magnitude of input 'vector' via pythagorean's theorem
   angle = atan2(double(yInput), double(xInput));      // atan2 accounts for four quadrants of input
- 
- 
+
 #ifdef ROTATION_LOCK
   sample++;
   if (PS3.getButtonClick(R3))
@@ -808,7 +800,6 @@ void driveCtrl()
   motor2Drive += rotationCorrect;
   motor3Drive += rotationCorrect;
   motor4Drive += rotationCorrect;
-
   
 #endif
 
@@ -894,12 +885,12 @@ void qbThrowerCtrl()  //provides QB arm control
 #ifdef QB_TRACKING
 void cameraCapture()
 {
-  int i;
-  int s;
-  int numGoodPoints = 0;
-  int firstPoint = 0;
-  int secondPoint = 0;
-  int pixWidth = 0;
+  byte i;
+  byte s;
+  byte numGoodPoints = 0;
+  byte firstPoint = 0;
+  byte secondPoint = 0;
+  byte pixWidth = 0;
   
   Wire.beginTransmission(slaveAddress);
   Wire.write(0x36);
@@ -1119,7 +1110,7 @@ void toggleServo()
 #error Two drivetrains are enabled! 
 #endif
 #ifdef ROTATION_LOCK
-#error Rotation lock is not normally used with a basic drivetrain... 
+#error Rotation lock is not normally used with a basic drivetrain...
 #endif
 #ifdef QB_PERIPHERALS
 #error Quarterback peripherals enabled with basic drivetrain. Quarterback requires an omniwheel drive 
