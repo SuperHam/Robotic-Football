@@ -70,10 +70,6 @@ Controls...
    QB Thrower - 5
    Kicker - 5
    Center - 5  
-   
-   Enable and disable the desired features here.
-   There is error handling below for if things are enabled/disabled that shouldn't be.
-   Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
 */
 //Minimum included libraries
 #include <PS3BT.h>
@@ -83,6 +79,10 @@ Controls...
 boolean driveState = EEPROM.read(0); //Reads value from the first value form the EEPROM
 boolean inverting = 0;              //Sets inverting to 0
 
+/*
+ Enable and disable the desired features below.
+ There is error handling below for if things are enabled/disabled that shouldn't be.
+*/
 //#define BASIC_DRIVETRAIN    //uncomment for 2 drive wheels                                         BASIC-FLASH:23747      SRAM:1061
 //#define OMNIWHEEL_DRIVETRAIN  //uncomment for omniwheel robots                                      OMNI-FLASH:25464      SRAM:1075
 //#define DUAL_MOTORS
