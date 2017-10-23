@@ -7,6 +7,8 @@ Investigate MAX_DRIVE 'arib' value
 Tackle is depenent on LED, consdier combineing
 DUAL MOTOR DRIVE TRAIN BROKEN GET RIDE OF W/ NEW RB?????????
 ADD IN 'ERROR' THAT WILL TELL HOW MUCH FLASH/SRAM IS USED WITH EVERY DDEFINE
+Check how much memory the strings within IR tracking are using
+Explore idea of reducing size of libraries
 */
 /*
  * =================================================
@@ -68,11 +70,12 @@ Controls...
    QB Thrower - 5
    Kicker - 5
    Center - 5  
+   
    Enable and disable the desired features here.
    There is error handling below for if things are enabled/disabled that shouldn't be.
    Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
 */
-//Include libraries
+//Minimum included libraries
 #include <PS3BT.h>
 #include <usbhub.h>
 #include <Servo.h>
