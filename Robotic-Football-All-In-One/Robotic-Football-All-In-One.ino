@@ -1,23 +1,60 @@
+#include <EEPROM.h>
 /*
- * =================================================
-   THE ALL-IN-ONE-PACKAGE - Robotic Football Edition
-   =================================================
+   THE ALL-IN-ONE-PACKAGE - Robotic Football Edition!!!
    
+   
+   
+   
+   
+   
+   
+   
+   
+   Enable and disable the desired features here.
+   There is error handling below for if things are enabled/disabled that shouldn't be.
+   Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
+
+*/
+      
+int driveState = EEPROM.read(0); //Reads value from the first value form the EEPROM
+int inverting = 0;              //Sets inverting to 0
+ 
+//#define BASIC_DRIVETRAIN    //uncomment for 2 drive wheels
+//#define DUAL_MOTORS
+//#define LR_TACKLE_PERIPHERALS         //uncomment for special handicap for the tackles
+#define OMNIWHEEL_DRIVETRAIN  //uncomment for omniwheel robots
+
+
+//#define CENTER_PERIPHERALS  //uncomment for special features of center 
+#define QB_PERIPHERALS      //uncomment for special QB features
+//#define IR_MAST
+//#define QB_TRACKING
+//#define KICKER_PERIPHERALS  //uncomment for special Kicker features
+//#define RECEIVER_PERIPHERALS  
+#define LED_STRIP       //uncomment for LED functionality
+#define TACKLE          //uncomment for tackle sensor functionality
+//#define ROTATION_LOCK
+
+//#define CIM_MOTOR
+//#define _775_MOTOR
+#define BANEBOTS_MOTOR
+
+//#define BAG_MOTOR
+
+
+/*
    Vesion History
    1.0.0 - AARON ROGGOW - adding pre-existant functionality for basic drivetrain, omniwheel drivetrain, center, qb, and kicker, and calibration and kids mode
    1.0.1 - Matt Bull- fixed eStop functionality for if controller becomes disconnected, added ability to disconnect controller in calibration mode when PS is pressed
    1.0.2 - Matt Bull- added ability to disconnect controller to the main loop for testing eStop
    1.0.3 - Aaron Roggow - added compass code to quarterback (rotation_lock)
    1.0.4 - Aaron Roggow - added red led
-   1.0.5 - Jacob Gehring - added eeprom
-   1.0.6 - Julia Jenks - adjusted LEDs to function green for idle, red for tackled, and blue for non-ball carriers. Also commented code
-   1.0.7 - Alex Kaariainen - removed legacy code, commented code, and improved general omni agility and preformance
-
-
-
-
-
-  Controls...
+   1.0.5 - Jacob Gehring
+   1.0.6 - Julia Jenks - adjusted LEDs to function green for idle, red for tackled, and blue for non-ball carriers
+                         commented code  
+   1.0.7 - William Sullivan - added defines to fix compatability with bag motors
+ 
+   Controls...
    SELECT - enter/exit CALIBRATION MODE - note, will exit into normal drive mode
       UP/DOWN - adjust motor offset
    START - enter/exit KIDS MODE - will make the robots move much slower
@@ -27,9 +64,9 @@
       R2 - turbo
       To switch to tank drive hold L1 and press Select
    Omniwheel Drivetrain:
-      Left Joystick U/D/L/R - straffing any direction. Similar to moving a point on an x-y plane.
+      Left Joystick U/D/L/R - straffing any direction
       Right Joystick L/R - rotate
-      L1 - reverse controls (back of robot is now front)
+      L1 - reverse controls (back of robot is now front. Also reduces turn speed)
    Center
       CROSS - lower ball release
       TRIANGLE - raise ball release
@@ -61,35 +98,8 @@
     Motor4 - 10
    QB Thrower - 5
    Kicker - 5
-   Center - 5  
-
-
-
-
-
-   Enable and disable the desired features here.
-   There is error handling below for if things are enabled/disabled that shouldn't be.
-   Make sure if you add additional functionality, to add error handling for it being turned on at the wrong time
+   Center - 5
 */
-
-#include <EEPROM.h>      
-int driveState = EEPROM.read(0); //Reads value from the first value form the EEPROM
-int inverting = 0;              //Sets inverting to 0
-
-//#define BASIC_DRIVETRAIN    //uncomment for 2 drive wheels
-//#define DUAL_MOTORS
-//#define LR_TACKLE_PERIPHERALS         //uncomment for special handicap for the tackles
-#define OMNIWHEEL_DRIVETRAIN  //uncomment for omniwheel robots
-
-//#define CENTER_PERIPHERALS  //uncomment for center-robot features 
-//#define QB_PERIPHERALS      //uncomment for QB features
-#define IR_MAST
-//#define QB_TRACKING
-//#define KICKER_PERIPHERALS  //uncomment for special Kicker features
-//#define RECEIVER_PERIPHERALS  
-#define LED_STRIP       //uncomment for LED functionality
-#define TACKLE          //uncomment for tackle sensor functionality
-//#define ROTATION_LOCK
  
 // mode definitions
 #define DRIVING         1
@@ -129,8 +139,15 @@ int inverting = 0;              //Sets inverting to 0
   /*  these are to reverse the motor direction if a motor is wired backwards.
    *  In almost every case, it would be better to fix the wiring than to change this in code
    */
+   
+  #if defined(BAG_MOTOR)
+  #define LEFT_MOTOR_REVERSE    1     
+  #define RIGHT_MOTOR_REVERSE   -1     
+  #endif
+  #if defined (_775_MOTOR) || defined(CIM_MOTOR) || defined(BANEBOTS_MOTOR)
   #define LEFT_MOTOR_REVERSE    -1     
-  #define RIGHT_MOTOR_REVERSE   1     
+  #define RIGHT_MOTOR_REVERSE   1 
+  #endif
    
   #define LEFT_MOTOR            9     // left motor is wired to pin 9
   #define RIGHT_MOTOR           10    // right motor is wired to pin 10
@@ -141,7 +158,7 @@ int inverting = 0;              //Sets inverting to 0
     Servo leftMotor2, rightMotor2;
   #endif
   
-  //basic drivetrain handicap definitions
+  // omniwheel and basic drivetrains both have their own version of these two
   #define ALTERNATE_HANDICAP    1    
   #define DEFAULT_HANDICAP      3     // when not using boost, speed is divided by 3
   #define KID_HANDICAP          7     // when in kids mode, speed s divided by 7
@@ -158,19 +175,19 @@ int inverting = 0;              //Sets inverting to 0
   // Pins for Omni drive robots
   #define MOTOR_1               7     //   1//-FRONT-\\4
   #define MOTOR_2               8     //     |       |
-  #define MOTOR_3               9     //     |       |                                                                         
+  #define MOTOR_3               9     //     |       |                                                                          <-- check this for accuracy
   #define MOTOR_4               10    //   2\\-------//3
   #define KID_HANDICAP          5     // when omni is in kids mode, speed is divided by 5 
   #define PI_OVER_2             M_PI/2
   #define PI_OVER_4             M_PI/4
-  #define TURN_HANDICAP_AMOUNT  1       // divide turn speed by 1
-  #define MAX_TURN 14                   // limit the value for turning for calculations to send final speed to motors
-  #ifdef QB_PERIPHERALS                 // QB has a unique handicap profile
-    #define DEFAULT_HANDICAP      1.25  // when not using boost, speed divided by 1.25 or reduced by ~20%
-    #define ALTERNATE_HANDICAP    1     // when using boost, divide by 1 to drive with full speed
-  #else                                 // Default omni handicap for non-QB robots
-    #define DEFAULT_HANDICAP      2     // when not using boost, divide speed by 2, ~50% reduction
-    #define ALTERNATE_HANDICAP    1.5   // when using boost, divide speed by 1.5, ~33% reduction
+  #define TURN_HANDICAP_AMOUNT  1     // divide turn speed by 1
+  #define MAX_TURN 14                 // limit the value for turning for calculations to send final speed to motors
+  #ifdef QB_PERIPHERALS               // If this is the QB then R2 slows down otherwise R2 is boost.
+    #define DEFAULT_HANDICAP      1   // when not using boost, drive full speed
+    #define ALTERNATE_HANDICAP    3   // when using boost, divide speed by 3
+  #else
+    #define DEFAULT_HANDICAP      3   // when not using boost, divide speed by 3
+    #define ALTERNATE_HANDICAP    2   // when using boost, divide speed by 2 
   #endif
   Servo motor1, motor2, motor3, motor4;                                       // Define omni motor objects
   // we just make these global so we don't have to reallocate memory every single loop
@@ -203,13 +220,13 @@ int inverting = 0;              //Sets inverting to 0
 
 #define QB_THROWER            5
 Servo qbThrower;
-#define TRIANGLE_THROW        175   //is not full power(180) becuase of issues calibrating victors to full power
-#define CIRCLE_THROW          125
-#define CROSS_THROW           108
+#define TRIANGLE_THROW        165//was 175
+#define CIRCLE_THROW          125//was 125
+#define CROSS_THROW           108//was 108
 
 #define SQUARE_THROW          102
-#define RELOAD_THROW          88
-int throwOffset = 0;                //used to adjust strength of circle, cross, and square throws. Not currently utilized.
+#define RELOAD_THROW          88//was 88
+int throwOffset = 0;                //used to adjust strength of cross and circle throws
 #endif
 
 #ifdef QB_TRACKING
@@ -260,6 +277,7 @@ int throwOffset = 0;                //used to adjust strength of circle, cross, 
 /////////////////////////////////////////////////////////////////////
 int state = DRIVING;                // the current state the robot is in
 int handicap = DEFAULT_HANDICAP;    // This line requires one drivetrain to be enabled
+int motorCorrect = 0;               // This will help center the stop value of the motors
 
 // This is stuff for connecting the PS3 to USB.
 int newconnect = 0;                 // Variable(boolean) for connection to ps3, also activates rumble
@@ -363,7 +381,7 @@ void setup() {
 #ifdef ROTATION_LOCK
   if (!gyro.begin())
   {
-    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+    Serial.print("\nOoops, no BNO055 detected ... Check your wiring or I2C ADDR!");
     while (1)
     {
       flashLed();
@@ -387,6 +405,7 @@ void loop()
       // first connect
     {
       newconnect++;
+      //Serial.println("Rumble is on!");
       PS3.moveSetRumble(64);
       PS3.setRumbleOn(100, 255, 100, 255); //VIBRATE!!!
  
@@ -394,6 +413,33 @@ void loop()
       gyro.getEvent(&rotationReadout);
       desiredRotation = rotationReadout.orientation.x; // setting up our baseline value
 #endif
+    }
+ 
+    if (state == CALIBRATION)
+    { //CALIBRATION MODE
+      if (PS3.getButtonClick(UP))
+      {
+        motorCorrect++;
+        PS3.setRumbleOn(5, 255, 5, 0);    //vibrate ON THE LEFT!
+      }
+      else if (PS3.getButtonClick(DOWN))
+      {
+        motorCorrect--;
+        PS3.setRumbleOn(5, 0, 5, 255);    //vibrate ON THE RIGHT!
+      }
+      else if (PS3.getButtonClick(SELECT))
+      {
+        state = DRIVING;
+        PS3.setLedRaw(1);                 // OFF OFF OFF ON
+        PS3.setRumbleOn(5, 0, 5, 255);    //should vibrate left, then right, then both
+        PS3.setRumbleOn(5, 255, 5, 0);
+        PS3.setRumbleOn(5, 255, 5, 255);
+      }
+      if (PS3.getButtonClick(PS)) {
+        PS3.disconnect();
+        newconnect = 0;
+      }
+      eStop();
     }
  
 #ifdef LED_STRIP
@@ -441,6 +487,12 @@ void loop()
             driveState = 0;
           }
         }
+        //PS3.setLedRaw(15);                // ON ON ON ON
+        //PS3.setRumbleOn(5, 255, 5, 255);  // vibrate both, then left, then right
+        //PS3.setRumbleOn(5, 255, 5, 0);
+        //PS3.setRumbleOn(5, 0, 5, 255);
+        //state = CALIBRATION;
+ 
       }
       if (PS3.getButtonClick(START))
       { // switches between normal driving mode
@@ -459,7 +511,7 @@ void loop()
         }
       }
  
-#ifdef QB_PERIPHERALS   //Adds button L1 functionality to 'reverse' the robot's controls
+#ifdef QB_PERIPHERALS
       if (PS3.getButtonPress(L1))
       {
         motorReverse = M_PI;              // this is reversed
@@ -477,7 +529,7 @@ void loop()
       centerCtrl();
 #endif
 
-#ifdef IR_MAST  //When IR system gets re-worked, change the button to its own deticated button, specific for the QB
+#ifdef IR_MAST
     if (PS3.getButtonClick(L1))
     {
       toggleServo();
@@ -489,7 +541,7 @@ void loop()
 #endif
 
 #ifdef QB_PERIPHERALS
-      qbThrowerCtrl();  //adds QB arm control and QB arm calibration
+      qbThrowerCtrl();
 #endif
  
 #ifdef KICKER_PERIPHERALS
@@ -500,7 +552,7 @@ void loop()
       {
         if (PS3.getButtonPress(R2))
         {
-          handicap = ALTERNATE_HANDICAP; // ALTERNATE_HANICAP is boost mode, activates boost mode
+          handicap = ALTERNATE_HANDICAP; // TURBO!!!!!!!!!!!!!!
         }
         else
         {
@@ -615,17 +667,17 @@ void driveCtrl()
     // towards the desired speed.
     // The acceleration is then slowed
     // because of the loop cycle time
-    //Investigate a better solution
+ 
     if (drive < yInput)drive++;                     // Accelerates
     else if (drive > yInput) drive--;               // Decelerates
  
     if (turn < xInput) turn++;
     else if (turn > xInput) turn--;
  
-    throttleL = LEFT_MOTOR_REVERSE * ((drive + turn) / handicap);
+    throttleL = LEFT_MOTOR_REVERSE * ((drive + turn) / handicap) + motorCorrect;
     // This is the final variable that
     // decides motor speed.
-    throttleR = RIGHT_MOTOR_REVERSE * ((drive - turn) / handicap ) + ;
+    throttleR = RIGHT_MOTOR_REVERSE * ((drive - turn) / handicap ) + motorCorrect;
  
     if (throttleL > MAX_DRIVE) throttleL = MAX_DRIVE;
     else if (throttleL < -MAX_DRIVE)throttleL = -MAX_DRIVE;
@@ -658,7 +710,7 @@ void driveCtrl()
     if (abs(yInput) < 8) yInput = 0;                            // deals with the stickiness
     if (abs(xInput) < 8) xInput = 0;                            // of PS3 joysticks
  
-    if ((yInput == 0) && (xInput == 0))   // victors in 'coast mode' do not send any singals to motors when <4% power is being sent
+    if ((yInput == 0) && (xInput == 0))
     { // if no input this should ensure that
       // the motors actually stop, and skip the rest
       // of the drive function
@@ -684,10 +736,10 @@ void driveCtrl()
     if (turn < xInput) turn++;
     else if (turn > xInput) turn--;                //Since this is tank drive it is not actually turning
  
-    throttleL = LEFT_MOTOR_REVERSE * ((drive) / handicap);
+    throttleL = LEFT_MOTOR_REVERSE * ((drive) / handicap) + motorCorrect;
     // This is the final variable that
     // decides motor speed.
-    throttleR = RIGHT_MOTOR_REVERSE * ((turn) / handicap );
+    throttleR = RIGHT_MOTOR_REVERSE * ((turn) / handicap ) + motorCorrect;
  
     if (throttleL > MAX_DRIVE) throttleL = MAX_DRIVE;
     else if (throttleL < -MAX_DRIVE)throttleL = -MAX_DRIVE;
@@ -731,12 +783,15 @@ void driveCtrl()
       xInput = -90;
     }
   }
-  if (abs(yInput) < 8)yInput = 0;                     // taking care of non-perfectly centered analog sticks
+  if (abs(yInput) < 8)yInput = 0;                     // taking care of sticky input
   if (abs(xInput) < 8)xInput = 0;
-  if (abs(turnInput) < 2)turnInput = 0;               // this one is likely taken care of by integer rounding already. Include to be safe.
+  if (abs(turnInput) < 2)turnInput = 0;               // this one is likely taken care
+  // of by integer rounding already
+  // rounding
  
-  magn = sqrt(pow(xInput, 2) + pow(yInput, 2));       // finding magnitude of input 'vector' via pythagorean's theorem
-  angle = atan2(double(yInput), double(xInput));      // atan2 accounts for four quadrants of input
+  magn = sqrt(pow(xInput, 2) + pow(yInput, 2));       // finding magnitude of input
+  //magn = map(magn, 0, float(90) * sqrt(2.0), 0, 60);// need to investigate the purpose of this
+  angle = atan2(double(yInput), double(xInput));      // atan2 accounts for quadrants of input
  
  
 #ifdef ROTATION_LOCK
@@ -812,26 +867,25 @@ void driveCtrl()
   
 #endif
 
-  motor4Drive = ((magn * (sin(angle + PI_OVER_4 + motorReverse)) / (float)handicap) //casts handicap as a float in case of non-integer handicap
-                + (float)(turnHandicap * turnInput) + 90);
+  motor4Drive = ((magn * (sin(angle + PI_OVER_4 + motorReverse)) / handicap)
+                + (float)(turnHandicap * turnInput) + 90 + motorCorrect);
 
-  motor1Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + motorReverse)) / (float)handicap)                          
-                + (float)(turnHandicap * turnInput) + 90);
+  motor1Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + motorReverse)) / handicap)                          
+                + (float)(turnHandicap * turnInput) + 90 + motorCorrect);
 
-  motor2Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + PI_OVER_2 + motorReverse)) / (float)handicap)              
-                + (float)(turnHandicap * turnInput) + 90);
+  motor2Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + PI_OVER_2 + motorReverse)) / handicap)              
+                + (float)(turnHandicap * turnInput) + 90 + motorCorrect);
 
-  motor3Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + PI_OVER_2 + PI_OVER_2 + motorReverse)) / (float)handicap)  
-                + (float)(turnHandicap * turnInput) + 90);
+  motor3Drive = ((magn * (sin(angle + PI_OVER_4 + PI_OVER_2 + PI_OVER_2 + PI_OVER_2 + motorReverse)) / handicap)  
+                + (float)(turnHandicap * turnInput) + 90 + motorCorrect);
 
-#ifdef QB_TRACKING  
+#ifdef QB_TRACKING
   motor1Drive -= aimingFactor;
   motor2Drive -= aimingFactor;
   motor3Drive -= aimingFactor;
   motor4Drive -= aimingFactor;
 #endif
 
-  //investigate the funcitonality of the code below
   if (motor1Drive < 5)motor1Drive = 5;
   else if (motor1Drive > 175)motor1Drive = 175;
   if (motor2Drive < 5)motor2Drive = 5;
@@ -859,33 +913,44 @@ void driveCtrl()
 }
  
 #ifdef QB_PERIPHERALS
-void qbThrowerCtrl()  //provides QB arm control
+void qbThrowerCtrl()
 {
-  if (PS3.getButtonPress(L2))    //Used to calibrate QB throwing arm strength for circle, cross, and sqaure.
+
+  
+  if (PS3.getButtonPress(L2))
   {
     if (PS3.getButtonClick(UP))
     {
-      throwOffset += 9; //adds an offset of ~5%
+      throwOffset += 2;
       PS3.setRumbleOn(5, 255, 5, 0); //vibrate on the left!
     }
     else if (PS3.getButtonClick(DOWN))
     {
-      throwOffset -= 9; //subtracts an offset of ~5%
+      throwOffset -= 2;
       PS3.setRumbleOn(5, 0, 5, 255); //vibrate on the right!
     }
   }
  
-  if (PS3.getButtonPress(TRIANGLE))    qbThrower.write(TRIANGLE_THROW);
+  if (PS3.getButtonPress(TRIANGLE)) {
+    qbThrower.write(TRIANGLE_THROW);
+    }
 #ifdef QB_TRACKING
+
   else if(PS3.getButtonPress(CIRCLE) && (isWRTracking == true)) qbThrower.write(calcThrow); // throw the auto targetted distance
 #endif
   else if (PS3.getButtonPress(CIRCLE)) qbThrower.write(CIRCLE_THROW + throwOffset);
   else if (PS3.getButtonPress(CROSS))  qbThrower.write(CROSS_THROW + throwOffset);
   else if (PS3.getButtonPress(SQUARE)) qbThrower.write(SQUARE_THROW + throwOffset) ;
-  else if (PS3.getButtonPress(R1))    //Lowers QB arm after the arm has been 'extended'
+  else if (PS3.getButtonPress(R1))
   {
     qbThrower.write(RELOAD_THROW);
     throwOffset = 0;
+    /*  if(isWRTracking){
+    printf("\n can see the wr");
+    }
+   if(!isWRTracking){
+    printf("\ncan't see that");
+    }*/
   }
   else qbThrower.writeMicroseconds(1500);
 }
@@ -913,6 +978,10 @@ void cameraCapture()
     data_buf[i] = Wire.read();
     i++;
   }
+  
+  // This appears to be stolen from here https://www.dfrobot.com/wiki/index.php/Positioning_ir_camera
+  // also here               https://blog.squix.org/2016/05/esp8266-peripherals-indoor-positioning-with-ir-camera.html
+  
   
   CamX[0] = data_buf[1];
   CamY[0] = data_buf[2];
@@ -986,17 +1055,17 @@ void cameraCapture()
       }
     }
   }
-  /*
-  ===========================================================================================
-   NOTE: ITERATING VARIABLE 'i' IS RETAINED AFTER FOR LOOP FOR USE IN UPDATNG ROTATION OFFSET
-   BE CAREFUL BE CAREFUL BE CAREFUL BE CAREFUL BE CAREFUL BE CAREFUL BE CAREFUL
-  ===========================================================================================
-  */
+  //===========================================================================================
+  // NOTE: ITERATING VARIABLE 'i' IS RETAINED AFTER FOR LOOP FOR USE IN UPDATNG ROTATION OFFSET
+  // BE CAREFUL BE CAREFUL BE CAREFUL BE CAREFUL BE CAREFUL BE CAREFUL BE CAREFUL
+  //===========================================================================================
+
   // UPDATE TRACKING STATE
   if(PS3.getButtonClick(R3))
   {
     if((isWRTracking == false) && (isWRSeen == true))   // Only track if we currently see the WR
     {
+      printf("Found the wr");
       isWRTracking = true;
       PS3.moveSetRumble(64);
       PS3.setRumbleOn(100, 255, 100, 255); //VIBRATE!!!
@@ -1004,6 +1073,7 @@ void cameraCapture()
     else if(isWRTracking == true)
     {
       isWRTracking = false;
+      printf("\n can't see shit");
     }
   }
   if(isWRSeen == false)
@@ -1035,8 +1105,10 @@ void cameraCapture()
 void Write_2bytes(byte d1, byte d2)
 {
   Wire.beginTransmission(slaveAddress);
+  printf("\n Start that wicked nasty transmission");
   Wire.write(d1); Wire.write(d2);
   Wire.endTransmission();
+  printf("\n Completded that wicked nasty transmission");
 }
 #endif
 
@@ -1050,8 +1122,9 @@ void kickerCtrl()
 #endif
  
 #ifdef LED_STRIP
-void flashLed()  //flash the leds
+void flashLed()
 {
+  //flash the leds
   digitalWrite(RED_LED, LOW);
   digitalWrite(BLUE_LED, LOW);
   digitalWrite(GREEN_LED, HIGH);
@@ -1074,7 +1147,7 @@ void flashLed()  //flash the leds
 }
 #endif
  
-#ifdef CENTER_PERIPHERALS   //raises and lowers the 'dropping arm'
+#ifdef CENTER_PERIPHERALS
 void centerCtrl()
 {
   if (PS3.getButtonClick(TRIANGLE)) centerRelease.write(CENTER_RELEASE_UP);
@@ -1113,87 +1186,91 @@ void toggleServo()
 }
 #endif
  
-//Error handling for enabled portions of the code
+//Error handling for what parts of the code are enabled
 #ifdef BASIC_DRIVETRAIN
 #ifdef OMNIWHEEL_DRIVETRAIN
-#error Two drivetrains are enabled! 
+#error Two drivetrains are enabled!
 #endif
 #ifdef ROTATION_LOCK
-#error Rotation lock is not normally used with a basic drivetrain... 
+#error Rotation lock is not normally used with a basic drivetrain...
 #endif
 #ifdef QB_PERIPHERALS
-#error Quarterback peripherals enabled with basic drivetrain. Quarterback requires an omniwheel drive 
+#error Quarterback peripherals enabled with basic drivetrain. Quarterback requires an omniwheel drive
 #ifdef CENTER_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #ifdef RECEIVER_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #ifdef KICKER_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #endif
+ 
 #ifdef RECEIVER_PERIPHERALS
-#warning You are making a receiver with a basic drivetrain. Make sure this is right. 
+#warning You are making a receiver with a basic drivetrain. Make sure this is right.
 #ifdef CENTER_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #ifdef QB_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #ifdef KICKER_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #endif
 #endif
+ 
 #ifdef OMNIWHEEL_DRIVETRAIN
 #ifdef DUAL_MOTORS
-#error dual motors with an omniwheel? perposterous! 
+#error dual motors with an omniwheel? perposterous!
 #endif
 #ifdef CENTER_PERIPHERALS
-#error The center does not have an omniwheel drive, last I checked... 
+#error The center does not have an omniwheel drive, last I checked...
 #ifdef QB_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #ifdef RECEIVER_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #ifdef KICKER_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #endif
 #ifdef KICKER_PERIPHERALS
-#error Kicker does not use an omniwheel drive! 
+#error Kicker does not use an omniwheel drive!
 #ifdef CENTER_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #ifdef RECEIVER_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #ifdef QB_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #endif
 #ifdef RECEIVER_PERIPHERALS
-#warning You are making a receiver with an omniwheel drivetrain. Make sure this is right. 
+#warning You are making a receiver with an omniwheel drivetrain. Make sure this is right.
 #ifdef CENTER_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #ifdef QB_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #ifdef KICKER_PERIPHERALS
-#error Multiple peripherals enabled! 
+#error Multiple peripherals enabled!
 #endif
 #endif
 #endif
+
 #ifdef QB_TRACKING
 #ifndef QB_PERIPHERALS
 #error You enabled QB tracking, but no QB peripherals!
 #endif
 #endif
+
 #ifndef BASIC_DRIVETRAIN
 #ifndef OMNIWHEEL_DRIVETRAIN
-#warning You don't have a drivetrain enabled! Don't expect this robot to drive!
+#warning "You don't have a drivetrain enabled! Don't expect this robot to drive!"
 #endif
 #endif
